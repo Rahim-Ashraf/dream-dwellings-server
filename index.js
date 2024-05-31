@@ -16,7 +16,6 @@ app.use(
     })
 );
 
-// APIs
 
 const uri = `mongodb+srv://${process.env.DB_user}:${process.env.DB_pass}@cluster2.n2vc9uo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster2`;
 
@@ -34,7 +33,20 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
-        // app.get("/")
+        const dreamDwellings = client.db("dreamDwellings");
+        const advertisementsCollection = dreamDwellings.collection("advertisements");
+        const reviewsCollection = dreamDwellings.collection("reviews");
+
+
+        // APIs
+        app.get("/advertisements", async (req, res) => {
+            const cursor = await advertisementsCollection.find().toArray();
+            res.send(cursor)
+        })
+        app.get("/reviews", async (req, res) => {
+            const cursor = await reviewsCollection.find().toArray();
+            res.send(cursor)
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
