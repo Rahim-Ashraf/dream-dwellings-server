@@ -38,6 +38,7 @@ async function run() {
         const reviewsCollection = dreamDwellings.collection("reviews");
         const propertiesCollection = dreamDwellings.collection("properties");
         const wishlistCollection = dreamDwellings.collection("wishlist");
+        const offersCollection = dreamDwellings.collection("offers");
 
 
         // APIs
@@ -49,10 +50,15 @@ async function run() {
             const cursor = await reviewsCollection.find().toArray();
             res.send(cursor)
         })
-        app.get("/review", async (req, res) => {
+        app.get("/reviews", async (req, res) => {
             const propertyId = req.query.propertyId
             const query = { property_id: propertyId }
             const cursor = await reviewsCollection.find(query).toArray();
+            res.send(cursor)
+        })
+        app.post("/reviews", async (req, res) => {
+            const body = req.body;
+            const cursor = await reviewsCollection.insertOne(body);
             res.send(cursor)
         })
         app.get("/properties", async (req, res) => {
@@ -68,6 +74,29 @@ async function run() {
         app.post("/add-to-wishlist", async (req, res) => {
             const body = req.body
             const cursor = await wishlistCollection.insertOne(body)
+            res.send(cursor)
+        })
+        app.get("/wishlists", async (req, res) => {
+            const email = req.query.email
+            const query = { wishlist_email: email }
+            const cursor = await wishlistCollection.find(query).toArray()
+            res.send(cursor)
+        })
+        app.delete("/remove-wishlist", async (req, res) => {
+            const id = req.query.id;
+            const query = { _id: new ObjectId(id) }
+            const cursor = await wishlistCollection.deleteOne(query)
+            res.send(cursor)
+        })
+        app.post("/make-offer", async (req, res) => {
+            const body = req.body;
+            const cursor = await offersCollection.insertOne(body)
+            res.send(cursor)
+        })
+        app.get("/property-bought", async (req, res) => {
+            const email = req.query.email
+            const query = { buyer_email: email }
+            const cursor = await offersCollection.find(query).toArray()
             res.send(cursor)
         })
 
