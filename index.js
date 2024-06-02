@@ -1,9 +1,11 @@
 const express = require('express');
 const cors = require('cors');
+const Stripe = require('stripe');
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 const app = express()
+const stripe = Stripe('sk_test_51PNIg408T0MNCRXmytzq8V4Toky8wJoie2IMT1aJ08xSzHKWbks8GuA4wLoCJfQlx0JL9JTqYssxe8grbqQrk5rj000Lyh627E');
 
 // middlewars
 app.use(express.json());
@@ -98,6 +100,16 @@ async function run() {
             const query = { buyer_email: email }
             const cursor = await offersCollection.find(query).toArray()
             res.send(cursor)
+        })
+        app.post('/payment', async (req, res) => {
+            const { amount } = req.body;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount,
+                currency: 'usd',
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
         })
 
         // Send a ping to confirm a successful connection
