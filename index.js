@@ -101,6 +101,27 @@ async function run() {
             const cursor = await offersCollection.find(query).toArray()
             res.send(cursor)
         })
+        app.get("/single-property-bought", async (req, res) => {
+            const id = req.query.id
+            const query = { _id: new ObjectId(id) }
+            const cursor = await offersCollection.findOne(query)
+            res.send(cursor)
+        })
+        app.put("/single-property-bought", async (req, res) => {
+            const id = req.query.id
+            const body = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    verification_status: "bought",
+                    transaction_id: body.transaction_id
+                },
+            };
+            const options = { upsert: true };
+
+            const cursor = await offersCollection.updateOne(filter, updateDoc, options)
+            res.send(cursor)
+        })
         app.post('/payment', async (req, res) => {
             const { amount } = req.body;
             const paymentIntent = await stripe.paymentIntents.create({
