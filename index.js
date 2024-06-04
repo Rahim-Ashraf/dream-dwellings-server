@@ -36,14 +36,31 @@ async function run() {
         await client.connect();
 
         const dreamDwellings = client.db("dreamDwellings");
+        const usersCollection = dreamDwellings.collection("users");
         const advertisementsCollection = dreamDwellings.collection("advertisements");
         const reviewsCollection = dreamDwellings.collection("reviews");
         const propertiesCollection = dreamDwellings.collection("properties");
         const wishlistCollection = dreamDwellings.collection("wishlist");
         const offersCollection = dreamDwellings.collection("offers");
 
-
         // APIs
+        app.post("/users", async (req, res) => {
+            const user = req.body;
+            const query = { email: user.email }
+            const isUser = await usersCollection.findOne(query);
+            if (isUser) {
+                res.send({ message: "user already exist" });
+                return
+            }
+            const cursor = await usersCollection.insertOne(user);
+            res.send(cursor);
+        })
+        app.get("/user", async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const cursor = await usersCollection.findOne(query);
+            res.send(cursor);
+        })
         app.get("/advertisements", async (req, res) => {
             const cursor = await advertisementsCollection.find().toArray();
             res.send(cursor)
@@ -77,6 +94,29 @@ async function run() {
         })
         app.get("/properties", async (req, res) => {
             const cursor = await propertiesCollection.find().toArray();
+            res.send(cursor)
+        })
+        app.post("/properties", async (req, res) => {
+            const body = req.body;
+            const cursor = await propertiesCollection.insertOne(body);
+            res.send(cursor)
+        })
+        app.get("/my-added-properties", async (req, res) => {
+            const email = req.query.email;
+            const query = { agent_email: email };
+            const cursor = await propertiesCollection.find(query).toArray();
+            res.send(cursor)
+        })
+        app.get("/my-sold-properties", async (req, res) => {
+            const email = req.query.email;
+            const query = { agent_email: email, verification_status: "bought" };
+            const cursor = await offersCollection.find(query).toArray();
+            res.send(cursor)
+        })
+        app.get("/requested-properties", async (req, res) => {
+            const email = req.query.email;
+            const query = { agent_email: email, verification_status: "pending" };
+            const cursor = await offersCollection.find(query).toArray();
             res.send(cursor)
         })
         app.get("/property-details", async (req, res) => {
