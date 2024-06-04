@@ -101,6 +101,27 @@ async function run() {
             const cursor = await propertiesCollection.insertOne(body);
             res.send(cursor)
         })
+        app.delete("/properties", async (req, res) => {
+            const id = req.query.id;
+            const query = { _id: new ObjectId(id) };
+            const cursor = await propertiesCollection.deleteOne(query);
+            res.send(cursor)
+        })
+        app.patch("/properties", async (req, res) => {
+            const id = req.query.id
+            const body = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    property_title: body.property_title,
+                    property_location: body.property_location,
+                    price_range: body.price_range,
+                    property_image: body.property_image,
+                },
+            };
+            const cursor = await propertiesCollection.updateOne(filter, updateDoc);
+            res.send(cursor)
+        })
         app.get("/my-added-properties", async (req, res) => {
             const email = req.query.email;
             const query = { agent_email: email };
@@ -115,7 +136,7 @@ async function run() {
         })
         app.get("/requested-properties", async (req, res) => {
             const email = req.query.email;
-            const query = { agent_email: email, verification_status: "pending" };
+            const query = { agent_email: email };
             const cursor = await offersCollection.find(query).toArray();
             res.send(cursor)
         })
@@ -173,6 +194,30 @@ async function run() {
 
             const cursor = await offersCollection.updateOne(filter, updateDoc, options)
             res.send(cursor)
+        })
+        app.patch("/accept-property", async (req, res) => {
+            const id = req.query.id;
+            const body = req.body;
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    verification_status: body.verification_status,
+                }
+            }
+            const cursor = await offersCollection.updateOne(filter, updateDoc);
+            res.send(cursor);
+        })
+        app.patch("/reject-property", async (req, res) => {
+            const id = req.query.id;
+            const body = req.body;
+            const filter = { property_id: id }
+            const updateDoc = {
+                $set: {
+                    verification_status: body.verification_status,
+                }
+            }
+            const cursor = await offersCollection.updateMany(filter, updateDoc);
+            res.send(cursor);
         })
         app.post('/payment', async (req, res) => {
             const { amount } = req.body;
