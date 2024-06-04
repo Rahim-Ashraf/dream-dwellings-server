@@ -44,6 +44,25 @@ async function run() {
         const offersCollection = dreamDwellings.collection("offers");
 
         // APIs
+        app.get("/users", async (req, res) => {
+            const email = req.query.email;
+            const cursor = await usersCollection.find().toArray();
+            const result = cursor.filter(user => user.email !== email);
+            res.send(result);
+        })
+        app.patch("/users", async (req, res) => {
+            const id = req.query.id;
+            const body = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    role: body.role,
+                }
+            }
+            const options = { upsert: true };
+            const cursor = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(cursor);
+        })
         app.post("/users", async (req, res) => {
             const user = req.body;
             const query = { email: user.email }
@@ -53,6 +72,12 @@ async function run() {
                 return
             }
             const cursor = await usersCollection.insertOne(user);
+            res.send(cursor);
+        })
+        app.delete("/users", async (req, res) => {
+            const id = req.query.id;
+            const query = { _id: new ObjectId(id) }
+            const cursor = await usersCollection.deleteOne(query);
             res.send(cursor);
         })
         app.get("/user", async (req, res) => {
@@ -122,6 +147,11 @@ async function run() {
             const cursor = await propertiesCollection.updateOne(filter, updateDoc);
             res.send(cursor)
         })
+        app.get("/verified-properties", async (req, res) => {
+            const filter = { verification_status: "verified" }
+            const cursor = await propertiesCollection.find(filter).toArray();
+            res.send(cursor)
+        })
         app.get("/my-added-properties", async (req, res) => {
             const email = req.query.email;
             const query = { agent_email: email };
@@ -144,6 +174,18 @@ async function run() {
             const id = req.query.id
             const query = { _id: new ObjectId(id) }
             const cursor = await propertiesCollection.findOne(query);
+            res.send(cursor)
+        })
+        app.patch("/property-details", async (req, res) => {
+            const id = req.query.id;
+            const body = req.body;
+            const query = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    verification_status: body.verification_status
+                }
+            }
+            const cursor = await propertiesCollection.updateOne(query, updateDoc);
             res.send(cursor)
         })
         app.post("/add-to-wishlist", async (req, res) => {
