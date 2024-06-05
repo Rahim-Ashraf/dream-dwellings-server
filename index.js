@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const Stripe = require('stripe');
 require('dotenv').config()
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 const app = express()
@@ -33,7 +34,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
         const dreamDwellings = client.db("dreamDwellings");
         const usersCollection = dreamDwellings.collection("users");
@@ -43,14 +44,39 @@ async function run() {
         const wishlistCollection = dreamDwellings.collection("wishlist");
         const offersCollection = dreamDwellings.collection("offers");
 
+        // JWT APIs
+        app.post("/jwt", (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
+            res.send({ token });
+        })
+        // JWT middlewar
+        const verifyToken = (req, res, next) => {
+            console.log("not token", req.headers.authorization)
+            if (!req.headers.authorization) {
+                console.log("not token", req.headers.authorization)
+                return res.status(401).send({ message: 'unauthorized access' });
+            }
+            const token = req.headers.authorization;
+            // console.log("not token",req.headers.authorization)
+            jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
+                if (err) {
+                    console.log("error token")
+                    return res.status(401).send({ message: 'unauthorized access' })
+                }
+                req.decoded = decoded;
+                next();
+            })
+        }
+
         // APIs
-        app.get("/users", async (req, res) => {
+        app.get("/users", verifyToken, async (req, res) => {
             const email = req.query.email;
             const cursor = await usersCollection.find().toArray();
             const result = cursor.filter(user => user.email !== email);
             res.send(result);
         })
-        app.patch("/users", async (req, res) => {
+        app.patch("/users", verifyToken, async (req, res) => {
             const id = req.query.id;
             const body = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -63,7 +89,7 @@ async function run() {
             const cursor = await usersCollection.updateOne(filter, updateDoc, options);
             res.send(cursor);
         })
-        app.post("/users", async (req, res) => {
+        app.post("/users", verifyToken, async (req, res) => {
             const user = req.body;
             const query = { email: user.email }
             const isUser = await usersCollection.findOne(query);
@@ -74,7 +100,7 @@ async function run() {
             const cursor = await usersCollection.insertOne(user);
             res.send(cursor);
         })
-        app.delete("/users", async (req, res) => {
+        app.delete("/users", verifyToken, async (req, res) => {
             const id = req.query.id;
             const query = { _id: new ObjectId(id) }
             const cursor = await usersCollection.deleteOne(query);
@@ -94,45 +120,55 @@ async function run() {
             const cursor = await reviewsCollection.find().toArray();
             res.send(cursor)
         })
-        app.get("/reviews", async (req, res) => {
+        app.get("/all-reviews", verifyToken, async (req, res) => {
+            const cursor = await reviewsCollection.find().toArray();
+            res.send(cursor)
+        })
+        app.delete("/delete-reviews", verifyToken, async (req, res) => {
+            const id = req.query.id;
+            const query = { _id: new ObjectId(id) };
+            const cursor = await reviewsCollection.deleteOne(query);
+            res.send(cursor)
+        })
+        app.get("/reviews", verifyToken, async (req, res) => {
             const propertyId = req.query.propertyId
             const query = { property_id: propertyId }
             const cursor = await reviewsCollection.find(query).toArray();
             res.send(cursor)
         })
-        app.post("/reviews", async (req, res) => {
+        app.post("/reviews", verifyToken, async (req, res) => {
             const body = req.body;
             const cursor = await reviewsCollection.insertOne(body);
             res.send(cursor)
         })
-        app.get("/my-reviews", async (req, res) => {
+        app.get("/my-reviews", verifyToken, async (req, res) => {
             const email = req.query.email
             const query = { reviewer_email: email }
             const cursor = await reviewsCollection.find(query).toArray();
             res.send(cursor)
         })
-        app.delete("/my-reviews", async (req, res) => {
+        app.delete("/my-reviews", verifyToken, async (req, res) => {
             const id = req.query.id;
             const query = { _id: new ObjectId(id) }
             const cursor = await reviewsCollection.deleteOne(query);
             res.send(cursor)
         })
-        app.get("/properties", async (req, res) => {
+        app.get("/properties", verifyToken, async (req, res) => {
             const cursor = await propertiesCollection.find().toArray();
             res.send(cursor)
         })
-        app.post("/properties", async (req, res) => {
+        app.post("/properties", verifyToken, async (req, res) => {
             const body = req.body;
             const cursor = await propertiesCollection.insertOne(body);
             res.send(cursor)
         })
-        app.delete("/properties", async (req, res) => {
+        app.delete("/properties", verifyToken, async (req, res) => {
             const id = req.query.id;
             const query = { _id: new ObjectId(id) };
             const cursor = await propertiesCollection.deleteOne(query);
             res.send(cursor)
         })
-        app.patch("/properties", async (req, res) => {
+        app.patch("/properties", verifyToken, async (req, res) => {
             const id = req.query.id
             const body = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -152,31 +188,37 @@ async function run() {
             const cursor = await propertiesCollection.find(filter).toArray();
             res.send(cursor)
         })
-        app.get("/my-added-properties", async (req, res) => {
+        app.get("/verified-properties-search", async (req, res) => {
+            const text = req.query.text;
+            const query = { verification_status: "verified", property_location: { $regex: text, $options: 'i' } };
+            const cursor = await propertiesCollection.find(query).toArray();
+            res.send(cursor)
+        })
+        app.get("/my-added-properties", verifyToken, async (req, res) => {
             const email = req.query.email;
             const query = { agent_email: email };
             const cursor = await propertiesCollection.find(query).toArray();
             res.send(cursor)
         })
-        app.get("/my-sold-properties", async (req, res) => {
+        app.get("/my-sold-properties", verifyToken, async (req, res) => {
             const email = req.query.email;
             const query = { agent_email: email, verification_status: "bought" };
             const cursor = await offersCollection.find(query).toArray();
             res.send(cursor)
         })
-        app.get("/requested-properties", async (req, res) => {
+        app.get("/requested-properties", verifyToken, async (req, res) => {
             const email = req.query.email;
             const query = { agent_email: email };
             const cursor = await offersCollection.find(query).toArray();
             res.send(cursor)
         })
-        app.get("/property-details", async (req, res) => {
+        app.get("/property-details", verifyToken, async (req, res) => {
             const id = req.query.id
             const query = { _id: new ObjectId(id) }
             const cursor = await propertiesCollection.findOne(query);
             res.send(cursor)
         })
-        app.patch("/property-details", async (req, res) => {
+        app.patch("/property-details", verifyToken, async (req, res) => {
             const id = req.query.id;
             const body = req.body;
             const query = { _id: new ObjectId(id) };
@@ -188,41 +230,41 @@ async function run() {
             const cursor = await propertiesCollection.updateOne(query, updateDoc);
             res.send(cursor)
         })
-        app.post("/add-to-wishlist", async (req, res) => {
+        app.post("/add-to-wishlist", verifyToken, async (req, res) => {
             const body = req.body
             const cursor = await wishlistCollection.insertOne(body)
             res.send(cursor)
         })
-        app.get("/wishlists", async (req, res) => {
+        app.get("/wishlists", verifyToken, async (req, res) => {
             const email = req.query.email
             const query = { wishlist_email: email }
             const cursor = await wishlistCollection.find(query).toArray()
             res.send(cursor)
         })
-        app.delete("/remove-wishlist", async (req, res) => {
+        app.delete("/remove-wishlist", verifyToken, async (req, res) => {
             const id = req.query.id;
             const query = { _id: new ObjectId(id) }
             const cursor = await wishlistCollection.deleteOne(query)
             res.send(cursor)
         })
-        app.post("/make-offer", async (req, res) => {
+        app.post("/make-offer", verifyToken, async (req, res) => {
             const body = req.body;
             const cursor = await offersCollection.insertOne(body)
             res.send(cursor)
         })
-        app.get("/property-bought", async (req, res) => {
+        app.get("/property-bought", verifyToken, async (req, res) => {
             const email = req.query.email
             const query = { buyer_email: email }
             const cursor = await offersCollection.find(query).toArray()
             res.send(cursor)
         })
-        app.get("/single-property-bought", async (req, res) => {
+        app.get("/single-property-bought", verifyToken, async (req, res) => {
             const id = req.query.id
             const query = { _id: new ObjectId(id) }
             const cursor = await offersCollection.findOne(query)
             res.send(cursor)
         })
-        app.put("/single-property-bought", async (req, res) => {
+        app.put("/single-property-bought", verifyToken, async (req, res) => {
             const id = req.query.id
             const body = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -237,7 +279,7 @@ async function run() {
             const cursor = await offersCollection.updateOne(filter, updateDoc, options)
             res.send(cursor)
         })
-        app.patch("/accept-property", async (req, res) => {
+        app.patch("/accept-property", verifyToken, async (req, res) => {
             const id = req.query.id;
             const body = req.body;
             const filter = { _id: new ObjectId(id) }
@@ -249,7 +291,7 @@ async function run() {
             const cursor = await offersCollection.updateOne(filter, updateDoc);
             res.send(cursor);
         })
-        app.patch("/reject-property", async (req, res) => {
+        app.patch("/reject-property", verifyToken, async (req, res) => {
             const id = req.query.id;
             const body = req.body;
             const filter = { property_id: id }
@@ -261,7 +303,7 @@ async function run() {
             const cursor = await offersCollection.updateMany(filter, updateDoc);
             res.send(cursor);
         })
-        app.post('/payment', async (req, res) => {
+        app.post('/payment', verifyToken, async (req, res) => {
             const { amount } = req.body;
             const paymentIntent = await stripe.paymentIntents.create({
                 amount,
@@ -274,7 +316,7 @@ async function run() {
         })
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
