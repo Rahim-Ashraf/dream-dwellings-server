@@ -87,7 +87,7 @@ async function run() {
             const cursor = await usersCollection.updateOne(filter, updateDoc, options);
             res.send(cursor);
         })
-        app.post("/users", verifyToken, async (req, res) => {
+        app.post("/users", async (req, res) => {
             const user = req.body;
             const query = { email: user.email }
             const isUser = await usersCollection.findOne(query);
@@ -120,7 +120,7 @@ async function run() {
             res.send(cursor)
         })
         app.get("/latest-reviews", async (req, res) => {
-            const cursor = await reviewsCollection.find().toArray();
+            const cursor = await reviewsCollection.find().sort({ _id: -1 }).limit(3).toArray();
             res.send(cursor)
         })
         app.get("/all-reviews", verifyToken, async (req, res) => {
