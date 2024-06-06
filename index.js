@@ -13,7 +13,9 @@ app.use(express.json());
 app.use(
     cors({
         origin: [
-            "http://localhost:5173"
+            "http://localhost:5173",
+            "https://dream-dwellings-36ef2.web.app",
+            "https://dream-dwellings-36ef2.firebaseapp.com"
         ],
         credentials: true,
     })
@@ -52,16 +54,12 @@ async function run() {
         })
         // JWT middlewar
         const verifyToken = (req, res, next) => {
-            console.log("not token", req.headers.authorization)
             if (!req.headers.authorization) {
-                console.log("not token", req.headers.authorization)
                 return res.status(401).send({ message: 'unauthorized access' });
             }
             const token = req.headers.authorization;
-            // console.log("not token",req.headers.authorization)
             jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
                 if (err) {
-                    console.log("error token")
                     return res.status(401).send({ message: 'unauthorized access' })
                 }
                 req.decoded = decoded;
@@ -114,6 +112,11 @@ async function run() {
         })
         app.get("/advertisements", async (req, res) => {
             const cursor = await advertisementsCollection.find().toArray();
+            res.send(cursor)
+        })
+        app.post("/advertisements", async (req, res) => {
+            const body = req.body;
+            const cursor = await advertisementsCollection.insertOne(body);
             res.send(cursor)
         })
         app.get("/latest-reviews", async (req, res) => {
