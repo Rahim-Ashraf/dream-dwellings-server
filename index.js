@@ -74,6 +74,11 @@ async function run() {
             const result = cursor.filter(user => user.email !== email);
             res.send(result);
         })
+        app.get("/fraud-users", async (req, res) => {
+            const query = { is_fraud: "fraud", role: "agent" }
+            const cursor = await usersCollection.find(query).toArray();
+            res.send(cursor);
+        })
         app.patch("/users", verifyToken, async (req, res) => {
             const id = req.query.id;
             const body = req.body;
