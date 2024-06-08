@@ -74,11 +74,6 @@ async function run() {
             const result = cursor.filter(user => user.email !== email);
             res.send(result);
         })
-        app.get("/fraud-users", async (req, res) => {
-            const query = { is_fraud: "fraud", role: "agent" }
-            const cursor = await usersCollection.find(query).toArray();
-            res.send(cursor);
-        })
         app.patch("/users", verifyToken, async (req, res) => {
             const id = req.query.id;
             const body = req.body;
@@ -86,6 +81,24 @@ async function run() {
             const updateDoc = {
                 $set: {
                     role: body.role,
+                }
+            }
+            const options = { upsert: true };
+            const cursor = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(cursor);
+        })
+        app.get("/fraud-users", async (req, res) => {
+            const query = { is_fraud: "fraud", role: "agent" }
+            const cursor = await usersCollection.find(query).toArray();
+            res.send(cursor);
+        })
+        app.patch("/fraud-users", verifyToken, async (req, res) => {
+            const id = req.query.id;
+            const body = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    is_fraud: body.is_fraud,
                 }
             }
             const options = { upsert: true };
