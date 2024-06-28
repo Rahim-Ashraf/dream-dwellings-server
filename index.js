@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 const app = express()
-const stripe = Stripe('sk_test_51PNIg408T0MNCRXmytzq8V4Toky8wJoie2IMT1aJ08xSzHKWbks8GuA4wLoCJfQlx0JL9JTqYssxe8grbqQrk5rj000Lyh627E');
+const stripe = Stripe(process.env.STRIPE_SECREY_KEY);
 
 // middlewars
 app.use(express.json());
