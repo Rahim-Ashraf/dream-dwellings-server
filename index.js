@@ -13,6 +13,7 @@ app.use(express.json());
 app.use(
     cors({
         origin: [
+            "http://localhost:3000",
             "http://localhost:5173",
             "https://dream-dwellings-36ef2.web.app",
             "https://dream-dwellings-36ef2.firebaseapp.com"
