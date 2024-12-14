@@ -15,8 +15,8 @@ app.use(
         origin: [
             "http://localhost:3000",
             "http://localhost:5173",
+            "https://dream-dwelling-ui.vercel.app",
             "https://dream-dwellings-36ef2.web.app",
-            "https://dream-dwellings-36ef2.firebaseapp.com"
         ],
         credentials: true,
     })
@@ -50,7 +50,7 @@ async function run() {
         // JWT APIs
         app.post("/jwt", (req, res) => {
             const user = req.body;
-            const token = jwt.sign(user, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
+            const token = jwt.sign(user, process.env.JWT_SECRET_KEY, { expiresIn: '30d' });
             res.send({ token });
         })
         // JWT middlewar
